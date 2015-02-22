@@ -1,0 +1,25 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    deferrable_gratification (0.3.1)
+      eventmachine
+    em-dir-watcher (0.9.4)
+    em-imap (0.5)
+      deferrable_gratification
+      eventmachine
+    em-systemcommand (2.0.10)
+      escape
+      eventmachine
+      posix-spawn
+    escape (0.0.4)
+    eventmachine (1.0.4)
+    posix-spawn (0.3.9)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  em-dir-watcher
+  em-imap
+  em-systemcommand
+  eventmachine
