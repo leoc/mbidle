@@ -1,3 +1,13 @@
+PATH
+  remote: .
+  specs:
+    mbidle (1.0.0)
+      em-dir-watcher
+      em-imap
+      em-systemcommand
+      eventmachine
+      rb-inotify
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -13,13 +23,16 @@ GEM
       posix-spawn
     escape (0.0.4)
     eventmachine (1.0.4)
+    ffi (1.9.6)
     posix-spawn (0.3.9)
+    rake (10.4.2)
+    rb-inotify (0.9.5)
+      ffi (>= 0.5.0)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  em-dir-watcher
-  em-imap
-  em-systemcommand
-  eventmachine
+  bundler (~> 1.7)
+  mbidle!
+  rake (~> 10.0)

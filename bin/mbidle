@@ -1,21 +1,20 @@
+#!/usr/bin/env ruby
+
 require 'em-imap'
 require 'em-dir-watcher'
 require 'forwardable'
 require 'em-systemcommand'
+require 'mbidle'
 
-MBSYNC_COMMAND = ENV['MBSYNC_BIN'] || 'mbsync'
+MBSYNC_COMMAND = ENV['MBSYNC_BIN']  || 'mbsync'
+MBSYNC_HOOK    = ENV['MBSYNC_HOOK'] || '~/.update-mail'
 
-$LOAD_PATH << File.expand_path('lib/', File.dirname(__FILE__))
-
-require 'mbidle/accounts'
-require 'mbidle/account'
-require 'mbidle/unique_queue'
-require 'mbidle/sync'
-require 'mbidle/log'
-
-MBidle::Sync.after_sync do
-  system 'bash /home/arthur/.bin/update-mail-widget'
+def update_mail_script
+  script_file = File.expand_path(MBSYNC_HOOK)
+  system "bash #{script_file}" if File.exist?(script_file)
 end
+
+MBidle::Sync.after_sync { update_mail_script }
 
 SHUTDOWN = false
 
@@ -26,7 +25,9 @@ EM.run do
     paths.map! { |p| File.join('~/.mail', p) }
     paths.reject! { |p| p =~ /\.mbsyncstate/ }
     accounts = @accounts.for_paths(*paths)
-    system 'bash /home/arthur/.bin/update-mail-widget' unless accounts.empty?
+
+    update_mail_script unless accounts.empty?
+
     MBidle::Sync.schedule(*accounts)
   end
 

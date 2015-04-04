@@ -1,5 +1,3 @@
-require 'pry'
-
 module MBidle
   class Sync
     class << self
