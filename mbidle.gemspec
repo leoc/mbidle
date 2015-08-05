@@ -21,9 +21,9 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'bundler', '~> 1.7'
   spec.add_development_dependency 'rake', '~> 10.0'
 
-  spec.add_dependency 'eventmachine'
-  spec.add_dependency 'em-imap'
-  spec.add_dependency 'em-dir-watcher'
-  spec.add_dependency 'em-systemcommand'
-  spec.add_dependency 'rb-inotify'
+  spec.add_dependency 'eventmachine', '~>1.0'
+  spec.add_dependency 'em-imap', '~>0.5'
+  spec.add_dependency 'em-dir-watcher', '~>0.9'
+  spec.add_dependency 'em-systemcommand', '~>2.0'
+  spec.add_dependency 'rb-inotify', '~>0.9'
 end
