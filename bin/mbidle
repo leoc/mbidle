@@ -1,0 +1,40 @@
+#!/usr/bin/env ruby
+
+require 'em-imap'
+require 'em-dir-watcher'
+require 'forwardable'
+require 'em-systemcommand'
+require 'mbidle'
+
+MBSYNC_COMMAND = ENV['MBSYNC_BIN']  || 'mbsync'
+MBSYNC_HOOK    = ENV['MBSYNC_HOOK'] || '~/.update-mail'
+
+def update_mail_script
+  script_file = File.expand_path(MBSYNC_HOOK)
+  system "bash #{script_file}" if File.exist?(script_file)
+end
+
+MBidle::Sync.after_sync { update_mail_script }
+
+SHUTDOWN = false
+
+EM.run do
+  @accounts = MBidle::Accounts.read
+
+  EMDirWatcher.watch File.expand_path('~/.mail') do |paths|
+    paths.map! { |p| File.join('~/.mail', p) }
+    paths.reject! { |p| p =~ /\.mbsyncstate/ }
+    accounts = @accounts.for_paths(*paths)
+
+    update_mail_script unless accounts.empty?
+
+    MBidle::Sync.schedule(*accounts)
+  end
+
+  @accounts.each(&:idle!)
+
+  trap('TERM') do
+    SHUTDOWN = true
+    EM.stop
+  end
+end
