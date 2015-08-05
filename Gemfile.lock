@@ -1,12 +1,12 @@
 PATH
   remote: .
   specs:
-    mbidle (1.0.0)
-      em-dir-watcher
-      em-imap
-      em-systemcommand
-      eventmachine
-      rb-inotify
+    mbidle (1.0.1)
+      em-dir-watcher (~> 0.9)
+      em-imap (~> 0.5)
+      em-systemcommand (~> 2.0)
+      eventmachine (~> 1.0)
+      rb-inotify (~> 0.9)
 
 GEM
   remote: https://rubygems.org/
@@ -22,9 +22,9 @@ GEM
       eventmachine
       posix-spawn
     escape (0.0.4)
-    eventmachine (1.0.4)
-    ffi (1.9.6)
-    posix-spawn (0.3.9)
+    eventmachine (1.0.7)
+    ffi (1.9.10)
+    posix-spawn (0.3.11)
     rake (10.4.2)
     rb-inotify (0.9.5)
       ffi (>= 0.5.0)
