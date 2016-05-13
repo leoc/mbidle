@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    mbidle (1.0.1)
+    mbidle (1.1.0)
       em-dir-watcher (~> 0.9)
       em-imap (~> 0.5)
       em-systemcommand (~> 2.0)
