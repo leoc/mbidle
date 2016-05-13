@@ -19,6 +19,8 @@ module MBidle
       when 'Inbox' then @folder = File.basename(match[:value])
       when 'CertificateFile' then @cert = match[:value]
       when 'UseIMAPS' then @imaps = (match[:value] == 'yes')
+      when 'SSLType'
+        @imaps = %w(IMAPS STARTTLS).include?(match[:value])
       end
     end
 
