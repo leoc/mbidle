@@ -3,9 +3,13 @@ module MBidle
     def push(*items)
       EM.schedule do
         items.each do |item|
-          @items.push(item) unless @items.include?(item)
+          @sink.push(item) unless @sink.include?(item)
         end
-        @popq.shift.call @items.shift until @items.empty? || @popq.empty?
+        unless @popq.empty?
+          @drain = @sink
+          @sink = []
+          @popq.shift.call @drain.shift until @drain.empty? || @popq.empty?
+        end
       end
     end
   end
