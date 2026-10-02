@@ -132,10 +132,14 @@ func (w *Watcher) Connect(ctx context.Context, events chan<- event) (*imapclient
 		},
 	}
 
-	var (
-		c   *imapclient.Client
-		err error
-	)
+	// Fetch the password before dialing: with a locked vault PassCmd waits for
+	// the user, and servers drop unauthenticated connections in the meantime.
+	pass, err := passwords.Get(ctx, a)
+	if err != nil {
+		return nil, err
+	}
+
+	var c *imapclient.Client
 	switch strings.ToUpper(a.TLSType) {
 	case "IMAPS":
 		c, err = imapclient.DialTLS(a.Addr(), opts)
@@ -148,11 +152,6 @@ func (w *Watcher) Connect(ctx context.Context, events chan<- event) (*imapclient
 		return nil, err
 	}
 
-	pass, err := passwords.Get(ctx, a)
-	if err != nil {
-		c.Close()
-		return nil, err
-	}
 	if err := wait(c, c.Login(a.User, pass)); err != nil {
 		c.Close()
 		var ie *imap.Error
