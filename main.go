@@ -119,9 +119,14 @@ func run(ctx context.Context, cfg *Config, channels []*Channel, log *slog.Logger
 	for {
 		select {
 		case <-ctx.Done():
-			log.Info("shutting down, waiting for running syncs")
-			wg.Wait()
-			<-schedDone
+			log.Info("shutting down, waiting for running syncs", "timeout", cfg.ShutdownTimeout.Duration)
+			done := make(chan struct{})
+			go func() {
+				wg.Wait()
+				<-schedDone
+				close(done)
+			}()
+			shutdown(sched, done, cfg.ShutdownTimeout.Duration, log)
 			return
 		case <-usr1:
 			syncAll("SIGUSR1")
@@ -129,6 +134,37 @@ func run(ctx context.Context, cfg *Config, channels []*Channel, log *slog.Logger
 			syncAll("interval")
 		}
 	}
+}
+
+// shutdown waits up to timeout for done, then terminates running mbsync
+// processes: without network a sync can hang far longer than a service
+// manager is willing to wait. Watchers still stuck on a dead connection are
+// abandoned; the process exits anyway.
+func shutdown(sched *Scheduler, done <-chan struct{}, timeout time.Duration, log *slog.Logger) {
+	wait := func(d time.Duration) bool {
+		select {
+		case <-done:
+			return true
+		case <-time.After(d):
+			return false
+		}
+	}
+	if wait(timeout) {
+		return
+	}
+	if n := sched.Signal(syscall.SIGTERM); n > 0 {
+		log.Warn("shutdown timeout, terminating running syncs", "processes", n)
+		if wait(3 * time.Second) {
+			return
+		}
+		if n := sched.Signal(syscall.SIGKILL); n > 0 {
+			log.Warn("killing syncs that ignored SIGTERM", "processes", n)
+			if wait(2 * time.Second) {
+				return
+			}
+		}
+	}
+	log.Warn("shutdown incomplete, exiting anyway")
 }
 
 // check logs into every account and reports capabilities, the chosen mode

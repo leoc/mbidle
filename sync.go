@@ -59,6 +59,7 @@ type Scheduler struct {
 	queue    []string
 	queued   map[string]bool
 	closed   bool
+	procs    map[*os.Process]bool // running mbsync and hook processes
 
 	hookMu      sync.Mutex
 	hookPending bool
@@ -75,6 +76,7 @@ func NewScheduler(cfg *Config, log *slog.Logger) *Scheduler {
 		running:  map[string][]string{},
 		finished: map[string]time.Time{},
 		queued:   map[string]bool{},
+		procs:    map[*os.Process]bool{},
 	}
 	s.cond = sync.NewCond(&s.mu)
 	return s
@@ -216,9 +218,9 @@ func (s *Scheduler) runMbsync(channel string, boxes []string, op Op) bool {
 	cmd := exec.Command(s.cfg.MbsyncBin, args...)
 	cmd.Stderr = &stderr
 	// Own process group: a Ctrl-C in the terminal must not kill mbsync
-	// mid-sync; shutdown waits for it instead.
+	// mid-sync; shutdown waits for it instead (up to shutdown_timeout).
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	err := cmd.Run()
+	err := s.run(cmd)
 	if err != nil {
 		s.log.Warn("sync failed", "channel", channel, "err", err, "stderr", strings.TrimSpace(stderr.String()))
 		return false
@@ -270,8 +272,37 @@ func (s *Scheduler) afterSync(channel string, boxes []string) {
 			"MBIDLE_CHANNELS="+strings.Join(channels, " "),
 			"MBIDLE_FOLDERS="+strings.Join(folders, "\n"))
 		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-		if out, err := cmd.CombinedOutput(); err != nil {
-			s.log.Warn("after_sync failed", "err", err, "output", strings.TrimSpace(string(out)))
+		var out bytes.Buffer
+		cmd.Stdout, cmd.Stderr = &out, &out
+		if err := s.run(cmd); err != nil {
+			s.log.Warn("after_sync failed", "err", err, "output", strings.TrimSpace(out.String()))
 		}
 	}()
+}
+
+// run starts cmd and waits for it, keeping it registered so Signal can
+// reach its process group during shutdown.
+func (s *Scheduler) run(cmd *exec.Cmd) error {
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	s.procs[cmd.Process] = true
+	s.mu.Unlock()
+	err := cmd.Wait()
+	s.mu.Lock()
+	delete(s.procs, cmd.Process)
+	s.mu.Unlock()
+	return err
+}
+
+// Signal sends sig to the process groups of all running mbsync and hook
+// processes and returns how many it reached.
+func (s *Scheduler) Signal(sig syscall.Signal) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for p := range s.procs {
+		syscall.Kill(-p.Pid, sig)
+	}
+	return len(s.procs)
 }

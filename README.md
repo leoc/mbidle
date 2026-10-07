@@ -104,7 +104,11 @@ mbidle -config other.toml    # andere mbidle-Konfiguration
 ```
 
 Signale: `SIGUSR1` → sofortiger Vollsync aller Konten; `SIGINT`/`SIGTERM` →
-Verbindungen schließen, laufende mbsync-Prozesse zu Ende laufen lassen.
+Verbindungen schließen, laufende mbsync-Prozesse zu Ende laufen lassen, aber
+höchstens `shutdown_timeout` lang (Default 10 s). Danach bekommen sie
+`SIGTERM`, nach 3 s `SIGKILL`, und mbidle beendet sich auch dann, wenn eine
+Verbindung ohne Netz noch hängt. Abgebrochene Syncs holt der nächste Vollsync
+nach.
 
 ## Konfiguration
 
@@ -119,6 +123,7 @@ debounce      = "2s"
 full_sync     = "30m"
 max_parallel  = 2
 watch_local   = true
+shutdown_timeout = "10s"  # Wartezeit auf laufende mbsync beim Beenden
 
 [defaults]
 mode          = "auto"   # auto | idle+scan | scan | off
@@ -150,7 +155,7 @@ systemd.user.services.mbidle = {
     Environment = "PATH=${lib.makeBinPath [ pkgs.isync pkgs.rbw pkgs.bash pkgs.coreutils ]}";
     Restart = "on-failure";
     RestartSec = 30;
-    TimeoutStopSec = 120;
+    TimeoutStopSec = 30;
   };
   Install.WantedBy = [ "graphical-session.target" ];
 };

@@ -32,6 +32,9 @@ type Config struct {
 	FullSync     Duration `toml:"full_sync"`
 	MaxParallel  int      `toml:"max_parallel"`
 	WatchLocal   *bool    `toml:"watch_local"`
+	// How long shutdown waits for running mbsync processes before
+	// terminating them.
+	ShutdownTimeout Duration `toml:"shutdown_timeout"`
 
 	Defaults AccountConfig            `toml:"defaults"`
 	Accounts map[string]AccountConfig `toml:"account"`
@@ -68,6 +71,9 @@ func LoadConfig(path string, explicit bool) (*Config, error) {
 	}
 	if cfg.MaxParallel <= 0 {
 		cfg.MaxParallel = 2
+	}
+	if cfg.ShutdownTimeout.Duration == 0 {
+		cfg.ShutdownTimeout.Duration = 10 * time.Second
 	}
 	if cfg.WatchLocal == nil {
 		t := true
